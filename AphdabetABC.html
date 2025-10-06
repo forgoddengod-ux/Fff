@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Алфавитная Цепочка</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+            touch-action: manipulation; /* Improves touch responsiveness */
+        }
+        .game-tile {
+            transition: all 0.15s ease-in-out;
+            user-select: none;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .game-tile:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+        .correct-animation {
+            animation: correctFlash 0.3s ease-in-out;
+        }
+        .incorrect-animation {
+            background-color: #ef4444 !important;
+            animation: incorrectShake 0.3s ease-in-out;
+        }
+
+        @keyframes correctFlash {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; background-color: #34d399; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes incorrectShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        .settings-panel {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 flex justify-center items-start min-h-screen">
+
+    <div id="app" class="w-full max-w-4xl bg-white rounded-xl shadow-2xl p-4 sm:p-6 md:p-8">
+
+        <!-- Header and Settings Toggle -->
+        <header class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800">
+                Алфавитная Цепочка
+            </h1>
+            <button id="settingsToggle" class="p-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 transition duration-150 shadow-md">
+                <!-- Icon for Settings -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </button>
+        </header>
+
+        <!-- Settings Panel (Hidden by default) -->
+        <div id="settingsPanel" class="hidden absolute top-4 right-4 z-50 w-full max-w-sm bg-white p-6 rounded-lg shadow-xl border border-gray-100 settings-panel">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Настройки игры</h2>
+            <button id="closeSettings" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            <!-- Letter Selection -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Какие буквы использовать?</label>
+                <div class="flex flex-wrap gap-2">
+                    <button data-range="A-Z" class="letter-preset px-3 py-1 text-sm rounded-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200">A-Z (Все)</button>
+                    <button data-range="A-M" class="letter-preset px-3 py-1 text-sm rounded-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200">A-M</button>
+                    <button data-range="N-Z" class="letter-preset px-3 py-1 text-sm rounded-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200">N-Z</button>
+                    <button data-range="AEIOU" class="letter-preset px-3 py-1 text-sm rounded-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200">Гласные</button>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label for="customLetters" class="block text-sm font-medium text-gray-700 mb-2">Или введите свои буквы (например, A B C D):</label>
+                <input type="text" id="customLetters" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="A, B, C, D...">
+            </div>
+
+            <button id="applySettings" class="w-full bg-green-500 text-white p-3 rounded-lg font-bold hover:bg-green-600 transition">
+                Сохранить и Обновить
+            </button>
+        </div>
+
+        <!-- Mode Selection & Start -->
+        <div id="modeSelection" class="p-6 bg-gray-50 rounded-lg shadow-inner mb-6">
+            <h2 class="text-xl font-semibold mb-3 text-gray-700">Выберите режим игры:</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <label class="mode-label flex items-center p-3 rounded-lg bg-white border-2 border-transparent hover:border-indigo-500 cursor-pointer transition shadow-sm">
+                    <input type="radio" name="gameMode" value="direct" checked class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                    <span class="ml-3 font-medium text-gray-700">Прямой порядок (A → Z)</span>
+                </label>
+                <label class="mode-label flex items-center p-3 rounded-lg bg-white border-2 border-transparent hover:border-indigo-500 cursor-pointer transition shadow-sm">
+                    <input type="radio" name="gameMode" value="reverse" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                    <span class="ml-3 font-medium text-gray-700">Обратный порядок (Z → A)</span>
+                </label>
+                <label class="mode-label flex items-center p-3 rounded-lg bg-white border-2 border-transparent hover:border-indigo-500 cursor-pointer transition shadow-sm">
+                    <input type="radio" name="gameMode" value="missing" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                    <span class="ml-3 font-medium text-gray-700">Пропущенные буквы (A, B, ___, D)</span>
+                </label>
+            </div>
+            
+            <button id="startButton" class="mt-4 w-full py-4 bg-green-600 text-white text-xl font-black rounded-xl hover:bg-green-700 transition duration-150 shadow-lg hover:shadow-xl">
+                Начать Игру
+            </button>
+        </div>
+
+        <!-- Game Dashboard -->
+        <div id="gameDashboard" class="hidden mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div class="p-3 bg-blue-100 rounded-lg shadow-md">
+                <p class="text-sm font-medium text-blue-600">Цель:</p>
+                <p id="targetLetterDisplay" class="text-3xl font-extrabold text-blue-800 mt-1">A</p>
+            </div>
+            <div class="p-3 bg-purple-100 rounded-lg shadow-md">
+                <p class="text-sm font-medium text-purple-600">Время:</p>
+                <p id="timerDisplay" class="text-3xl font-extrabold text-purple-800 mt-1">0.00 с</p>
+            </div>
+            <div class="p-3 bg-red-100 rounded-lg shadow-md">
+                <p class="text-sm font-medium text-red-600">Ошибок:</p>
+                <p id="errorCountDisplay" class="text-3xl font-extrabold text-red-800 mt-1">0</p>
+            </div>
+             <div class="p-3 bg-yellow-100 rounded-lg shadow-md">
+                <p class="text-sm font-medium text-yellow-600">Прогресс:</p>
+                <p id="progressDisplay" class="text-3xl font-extrabold text-yellow-800 mt-1">0 / 0</p>
+            </div>
+        </div>
+
+        <!-- Game Area -->
+        <div id="gameArea" class="hidden">
+            <div id="tileContainer" class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4 md:gap-6 p-4 bg-gray-100 rounded-xl min-h-[200px] sm:min-h-[300px] shadow-inner">
+                <!-- Tiles will be inserted here -->
+            </div>
+            
+            <button id="resetButton" class="mt-6 w-full py-3 bg-gray-300 text-gray-700 text-lg font-bold rounded-xl hover:bg-gray-400 transition">
+                Сброс / Выбор режима
+            </button>
+        </div>
+
+        <!-- Result Modal -->
+        <div id="resultModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md text-center transform transition-all duration-300 scale-100">
+                <h3 id="resultTitle" class="text-3xl font-black mb-4 text-green-700">Поздравляем!</h3>
+                <p class="text-lg text-gray-700 mb-2">Время: <span id="finalTime" class="font-bold text-green-600"></span></p>
+                <p class="text-lg text-gray-700 mb-6">Ошибок: <span id="finalErrors" class="font-bold text-red-600"></span></p>
+                
+                <button id="closeModalButton" class="w-full py-3 bg-indigo-600 text-white text-lg font-bold rounded-lg hover:bg-indigo-700 transition">
+                    Играть снова / Изменить настройки
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Глобальные константы и переменные
+        const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        const VOWELS = ['A', 'E', 'I', 'O', 'U'];
+        const CONSONANTS = ALPHABET.filter(l => !VOWELS.includes(l));
+        
+        let availableLetters = ALPHABET; // Текущий набор букв
+        let gameSequence = []; // Полная последовательность для текущей игры
+        let targetIndex = 0;
+        let errors = 0;
+        let timerInterval = null;
+        let startTime = 0;
+        let isGameRunning = false;
+        let gameMode = 'direct';
+
+        // Элементы DOM
+        const app = document.getElementById('app');
+        const settingsToggle = document.getElementById('settingsToggle');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const closeSettings = document.getElementById('closeSettings');
+        const applySettings = document.getElementById('applySettings');
+        const customLettersInput = document.getElementById('customLetters');
+        const startButton = document.getElementById('startButton');
+        const modeSelection = document.getElementById('modeSelection');
+        const gameDashboard = document.getElementById('gameDashboard');
+        const gameArea = document.getElementById('gameArea');
+        const tileContainer = document.getElementById('tileContainer');
+        const resetButton = document.getElementById('resetButton');
+        const targetLetterDisplay = document.getElementById('targetLetterDisplay');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const errorCountDisplay = document.getElementById('errorCountDisplay');
+        const progressDisplay = document.getElementById('progressDisplay');
+        const resultModal = document.getElementById('resultModal');
+        const closeModalButton = document.getElementById('closeModalButton');
+        
+        // --- Вспомогательные функции ---
+        
+        /**
+         * Перемешивает массив (алгоритм Фишера-Йетса).
+         * @param {Array} array
+         * @returns {Array} Перемешанный массив.
+         */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        /**
+         * Генерация набора букв на основе заданного диапазона/типа.
+         * @param {string} rangeKey - Ключ диапазона (например, 'A-Z', 'VOWELS', 'A-M').
+         * @returns {Array} Массив букв.
+         */
+        function generateLetterSet(rangeKey) {
+            if (rangeKey === 'A-Z') return ALPHABET;
+            if (rangeKey === 'A-M') return ALPHABET.slice(0, 13);
+            if (rangeKey === 'N-Z') return ALPHABET.slice(13);
+            if (rangeKey === 'AEIOU') return VOWELS;
+            return [];
+        }
+
+        /**
+         * Обновляет отображение текущей цели и прогресса.
+         */
+        function updateDashboard() {
+            if (gameSequence.length > 0) {
+                const currentTarget = gameSequence[targetIndex];
+                targetLetterDisplay.textContent = currentTarget ? currentTarget : '—';
+                errorCountDisplay.textContent = errors;
+                progressDisplay.textContent = `${targetIndex} / ${gameSequence.length}`;
+                
+                // Проверка на победу после обновления
+                if (targetIndex >= gameSequence.length && isGameRunning) {
+                    endGame(true);
+                }
+            } else {
+                 targetLetterDisplay.textContent = '—';
+                 progressDisplay.textContent = '0 / 0';
+            }
+        }
+
+        // --- Логика Игры ---
+
+        /**
+         * Создает плитки для текущего режима игры.
+         */
+        function renderTiles() {
+            tileContainer.innerHTML = '';
+            
+            let tilesToRender = [];
+
+            if (gameMode === 'missing') {
+                // Режим "Пропущенные буквы": показываем 4-5 плиток, одна из которых - правильная следующая
+                const nextTarget = gameSequence[targetIndex];
+                if (!nextTarget) return; // Игра окончена
+
+                // 1. Правильная плитка
+                tilesToRender.push(nextTarget);
+
+                // 2. Добавляем 3-4 случайных дистрактора из оставшихся доступных букв
+                const distractorsPool = availableLetters.filter(l => l !== nextTarget);
+                const shuffledDistractors = shuffleArray([...distractorsPool]);
+
+                // Добавляем до 3-х дистракторов
+                for(let i = 0; i < Math.min(3, shuffledDistractors.length); i++) {
+                    tilesToRender.push(shuffledDistractors[i]);
+                }
+                
+                // Обновляем цель, чтобы показать контекст
+                const targetContext = gameSequence.slice(0, targetIndex);
+                const lastTwo = targetContext.slice(-2);
+                const contextDisplay = lastTwo.join(', ') + (lastTwo.length > 0 ? ', ___' : '___');
+                targetLetterDisplay.textContent = contextDisplay;
+
+            } else {
+                // Режимы "Прямой" и "Обратный": все плитки сразу
+                const remainingLetters = gameSequence.slice(targetIndex);
+                if (remainingLetters.length === 0) return; // Игра окончена
+                tilesToRender = remainingLetters;
+            }
+
+            // Перемешиваем плитки для отображения
+            tilesToRender = shuffleArray(tilesToRender);
+
+            tilesToRender.forEach(letter => {
+                const tile = document.createElement('button');
+                tile.textContent = letter;
+                tile.dataset.letter = letter;
+                tile.className = 'game-tile p-4 sm:p-6 md:p-8 bg-indigo-500 text-white text-3xl sm:text-4xl md:text-5xl font-black rounded-lg transform active:scale-95 transition duration-150';
+                tile.addEventListener('click', handleTileClick);
+                tileContainer.appendChild(tile);
+            });
+        }
+
+        /**
+         * Обработчик клика по плитке.
+         * @param {Event} event - Событие клика.
+         */
+        function handleTileClick(event) {
+            if (!isGameRunning) return;
+
+            const clickedTile = event.currentTarget;
+            const clickedLetter = clickedTile.dataset.letter;
+            const targetLetter = gameSequence[targetIndex];
+
+            if (clickedLetter === targetLetter) {
+                // Правильный клик
+                clickedTile.classList.add('correct-animation', 'bg-green-500');
+                
+                // Удаляем плитку после короткой анимации
+                setTimeout(() => {
+                    clickedTile.remove();
+                    targetIndex++;
+                    updateDashboard();
+                    
+                    // В режиме "Missing", нужно перерисовать плитки для следующего шага
+                    if (gameMode === 'missing') {
+                        renderTiles();
+                    }
+
+                }, 150);
+                
+                // В режимах A-Z/Z-A плитка удаляется сама (т.к. все плитки на поле)
+                // В режиме "Missing", просто ждем следующего шага
+
+            } else {
+                // Неправильный клик
+                errors++;
+                errorCountDisplay.textContent = errors;
+                
+                clickedTile.classList.add('incorrect-animation');
+                
+                // Удаляем класс анимации после завершения, чтобы можно было кликнуть снова
+                setTimeout(() => {
+                    clickedTile.classList.remove('incorrect-animation');
+                }, 300);
+            }
+        }
+
+        /**
+         * Запуск таймера.
+         */
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsed = (Date.now() - startTime) / 1000;
+                timerDisplay.textContent = elapsed.toFixed(2) + ' с';
+            }, 100);
+        }
+
+        /**
+         * Остановка таймера.
+         */
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        /**
+         * Запускает игру.
+         */
+        function startGame() {
+            gameMode = document.querySelector('input[name="gameMode"]:checked').value;
+            
+            // 1. Определяем последовательность
+            const sequence = [...availableLetters];
+            if (gameMode === 'reverse') {
+                sequence.reverse();
+            } else if (gameMode === 'missing') {
+                // В режиме 'missing' мы всегда начинаем с A-Z (или выбранного набора), и логика рендера
+                // сама определяет, что показать. Последовательность должна быть прямой.
+                if (availableLetters.length < 4) {
+                     alert("Для режима 'Пропущенные буквы' выберите не менее 4 букв.");
+                     return;
+                }
+            }
+            gameSequence = sequence;
+
+            // 2. Сброс состояния
+            errors = 0;
+            targetIndex = 0;
+            isGameRunning = true;
+            stopTimer();
+            startTimer();
+
+            // 3. Обновление UI
+            modeSelection.classList.add('hidden');
+            gameDashboard.classList.remove('hidden');
+            gameArea.classList.remove('hidden');
+            
+            // Обновляем текст цели в зависимости от режима
+            if (gameMode === 'direct') targetLetterDisplay.parentNode.querySelector('p:first-child').textContent = 'След. A → Z:';
+            else if (gameMode === 'reverse') targetLetterDisplay.parentNode.querySelector('p:first-child').textContent = 'След. Z → A:';
+            else targetLetterDisplay.parentNode.querySelector('p:first-child').textContent = 'Выберите пропущенную:';
+
+            updateDashboard();
+            renderTiles();
+        }
+        
+        /**
+         * Завершает игру и показывает модальное окно.
+         * @param {boolean} won - True, если игра выиграна.
+         */
+        function endGame(won) {
+            isGameRunning = false;
+            stopTimer();
+
+            if (won) {
+                const finalTime = timerDisplay.textContent;
+                document.getElementById('finalTime').textContent = finalTime;
+                document.getElementById('finalErrors').textContent = errors;
+                document.getElementById('resultTitle').textContent = "Победа! Отлично!";
+                resultModal.classList.remove('hidden');
+            } else {
+                // Если игра сброшена/закрыта
+                resetGame();
+            }
+        }
+
+        /**
+         * Сброс игры.
+         */
+        function resetGame() {
+            stopTimer();
+            isGameRunning = false;
+            
+            // Сброс UI
+            timerDisplay.textContent = '0.00 с';
+            errorCountDisplay.textContent = '0';
+            targetLetterDisplay.textContent = 'A';
+            progressDisplay.textContent = '0 / 0';
+            tileContainer.innerHTML = '';
+
+            // Показываем меню выбора
+            modeSelection.classList.remove('hidden');
+            gameDashboard.classList.add('hidden');
+            gameArea.classList.add('hidden');
+            resultModal.classList.add('hidden');
+        }
+
+        // --- Логика Настроек ---
+        
+        /**
+         * Применяет настройки букв из панели.
+         */
+        function applyLetterSettings() {
+            let newLetters = [];
+            const customValue = customLettersInput.value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+
+            if (customValue.length > 0) {
+                // Пользовательский ввод
+                newLetters = Array.from(new Set(customValue.split('')));
+            } else {
+                // Пресеты. Находим активную кнопку пресета.
+                const activePreset = document.querySelector('.letter-preset.bg-indigo-600');
+                if (activePreset) {
+                    const rangeKey = activePreset.dataset.range;
+                    newLetters = generateLetterSet(rangeKey);
+                } else {
+                    // По умолчанию
+                    newLetters = ALPHABET;
+                }
+            }
+            
+            // Сортируем и устанавливаем
+            availableLetters = newLetters.sort();
+
+            // Закрываем панель и сбрасываем игру, чтобы применить новые настройки
+            settingsPanel.classList.add('hidden');
+            resetGame();
+        }
+
+        /**
+         * Инициализация обработчиков событий.
+         */
+        function initEventListeners() {
+            // Настройки
+            settingsToggle.addEventListener('click', () => settingsPanel.classList.toggle('hidden'));
+            closeSettings.addEventListener('click', () => settingsPanel.classList.add('hidden'));
+            applySettings.addEventListener('click', applyLetterSettings);
+
+            // Пресеты букв
+            document.querySelectorAll('.letter-preset').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    // Сброс всех
+                    document.querySelectorAll('.letter-preset').forEach(b => b.classList.replace('bg-indigo-600', 'bg-indigo-100'));
+                    document.querySelectorAll('.letter-preset').forEach(b => b.classList.replace('text-white', 'text-indigo-700'));
+
+                    // Установка активного
+                    e.target.classList.replace('bg-indigo-100', 'bg-indigo-600');
+                    e.target.classList.replace('text-indigo-700', 'text-white');
+                    customLettersInput.value = ''; // Очистка пользовательского поля при выборе пресета
+                });
+            });
+
+            // Пользовательский ввод
+            customLettersInput.addEventListener('input', () => {
+                 document.querySelectorAll('.letter-preset').forEach(b => b.classList.replace('bg-indigo-600', 'bg-indigo-100'));
+                 document.querySelectorAll('.letter-preset').forEach(b => b.classList.replace('text-white', 'text-indigo-700'));
+            });
+
+            // Игра
+            startButton.addEventListener('click', startGame);
+            resetButton.addEventListener('click', resetGame);
+            closeModalButton.addEventListener('click', resetGame);
+            
+            // Инициализация пресета по умолчанию
+            document.querySelector('.letter-preset[data-range="A-Z"]').click();
+        }
+
+        // Запуск приложения
+        window.onload = initEventListeners;
+
+    </script>
+</body>
+</html>
+
